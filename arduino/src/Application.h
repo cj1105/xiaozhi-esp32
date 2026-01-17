@@ -16,6 +16,7 @@
 #include <WebServer.h>
 #include "AudioService.h"
 #include "RemoteConfig.h"
+#include "AudioOutput.h"
 
 class Application {
  public:
@@ -49,5 +50,6 @@ class Application {
   void StopProvisioningAP();
   String ExtractJsonValue(const String& json, const String& key);
   std::unique_ptr<AudioService> audio_;
+  std::unique_ptr<AudioOutput> audio_out_;
 };
 

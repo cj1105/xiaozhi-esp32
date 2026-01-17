@@ -85,5 +85,14 @@ void WebSocketProtocol::OnEvent(WStype_t type, uint8_t* payload, size_t length) 
     msg.reserve(length);
     for (size_t i = 0; i < length; ++i) msg += (char)payload[i];
     if (on_in_json_) on_in_json_(msg);
+  } else if (type == WStype_BIN) {
+    if (on_in_audio_) {
+      auto pkt = std::make_unique<AudioStreamPacketA>();
+      pkt->sample_rate = 16000;
+      pkt->frame_duration = 20;
+      pkt->timestamp = millis();
+      pkt->payload.assign(payload, payload + length);
+      on_in_audio_(std::move(pkt));
+    }
   }
 }

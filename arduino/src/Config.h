@@ -15,6 +15,7 @@ namespace Config {
   static const char* DEVICE_ID = "bread-compact-wifi";
   static const char* CONFIG_URL = "";
   static const int AUDIO_SAMPLE_RATE = 16000;
+  static const int AUDIO_OUTPUT_SAMPLE_RATE = 24000;
   static const int AUDIO_FRAME_MS = 20;
   static const int I2S_PORT = 0;
   static const int I2S_PIN_BCLK = -1;

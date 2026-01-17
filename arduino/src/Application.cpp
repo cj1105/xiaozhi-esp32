@@ -13,6 +13,7 @@ void Application::Initialize() {
   settings_->Begin("xiaozhi");
   assets_ = std::make_unique<Assets>();
   audio_ = std::make_unique<AudioService>();
+  audio_out_ = std::make_unique<AudioOutput>();
   board_->Initialize();
   state_machine_.TransitionTo(kDeviceStateStartingA);
   display_->Initialize(board_.get(), &state_machine_);
@@ -30,6 +31,9 @@ void Application::Initialize() {
   state_machine_.TransitionTo(kDeviceStateConnectingA);
   assets_->Begin();
   audio_->Begin();
+  audio_out_->Begin(Config::AUDIO_OUTPUT_SAMPLE_RATE);
+  audio_out_->Open();
+  audio_out_->Beep(440, 200, Config::AUDIO_OUTPUT_SAMPLE_RATE);
   Serial.println("[APP] Initialize end");
   initialized_ = true;
   last_tick_ms_ = millis();
@@ -49,6 +53,11 @@ void Application::Tick() {
     if (wifi_connected_) {
       board_->SetLed(true);
       state_machine_.TransitionTo(kDeviceStateIdleA);
+      if (audio_out_) {
+        audio_out_->Open();
+        audio_out_->Beep(880, 250, Config::AUDIO_OUTPUT_SAMPLE_RATE);
+        audio_out_->Beep(660, 250, Config::AUDIO_OUTPUT_SAMPLE_RATE);
+      }
       if (!cfg_loaded_) {
         if (Config::CONFIG_URL && strlen(Config::CONFIG_URL) > 0) {
           remote_cfg_.Fetch(Config::CONFIG_URL, settings_.get());
@@ -71,6 +80,11 @@ void Application::Tick() {
           protocol_->OnConnected([this]() { state_machine_.TransitionTo(kDeviceStateIdleA); });
           protocol_->OnDisconnected([this]() { state_machine_.TransitionTo(kDeviceStateConnectingA); });
           protocol_->OnIncomingJson([this](const String& s){ HandleJsonMessage(s); });
+          protocol_->OnIncomingAudio([this](std::unique_ptr<AudioStreamPacketA> pkt){
+            if (audio_out_ && !audio_out_->IsOpened()) audio_out_->Open();
+            if (audio_out_) audio_out_->PlayPCMFrame(pkt->payload);
+            state_machine_.TransitionTo(kDeviceStateSpeakingA);
+          });
         }
       }
       if (protocol_ && !protocol_started_) {
@@ -98,6 +112,12 @@ void Application::Tick() {
         protocol_->SendAudio(std::move(pkt));
       }
     }
+  }
+  String play_req = settings_->GetString("play_pcm", "");
+  if (play_req.length() > 0) {
+    settings_->SetString("play_pcm", "");
+    if (audio_out_ && !audio_out_->IsOpened()) audio_out_->Open();
+    audio_out_->PlayPcmFile(play_req.c_str(), Config::AUDIO_OUTPUT_SAMPLE_RATE);
   }
   unsigned long now = millis();
   if (now - last_tick_ms_ >= 100) {

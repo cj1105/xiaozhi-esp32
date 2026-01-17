@@ -9,6 +9,7 @@ void Settings::SetString(const char* key, const String& value) {
 }
 
 String Settings::GetString(const char* key, const String& def) {
+  if (!prefs_.isKey(key)) return def;
   return prefs_.getString(key, def);
 }
 
@@ -17,6 +18,6 @@ void Settings::SetInt(const char* key, int value) {
 }
 
 int Settings::GetInt(const char* key, int def) {
+  if (!prefs_.isKey(key)) return def;
   return prefs_.getInt(key, def);
 }
-

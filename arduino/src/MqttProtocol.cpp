@@ -63,8 +63,19 @@ void MqttProtocol::Poll() {
 }
 
 void MqttProtocol::HandleMessage(char* topic, uint8_t* payload, unsigned int length) {
-  String msg;
-  msg.reserve(length);
-  for (unsigned int i = 0; i < length; ++i) msg += (char)payload[i];
-  if (on_in_json_) on_in_json_(msg);
+  if (length > 0 && payload[0] == '{') {
+    String msg;
+    msg.reserve(length);
+    for (unsigned int i = 0; i < length; ++i) msg += (char)payload[i];
+    if (on_in_json_) on_in_json_(msg);
+  } else {
+    if (on_in_audio_) {
+      auto pkt = std::make_unique<AudioStreamPacketA>();
+      pkt->sample_rate = 16000;
+      pkt->frame_duration = 20;
+      pkt->timestamp = millis();
+      pkt->payload.assign(payload, payload + length);
+      on_in_audio_(std::move(pkt));
+    }
+  }
 }
